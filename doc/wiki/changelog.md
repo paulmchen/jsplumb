@@ -1,3 +1,46 @@
+## 2.14.3
+
+July 14th 2020
+
+- Backed out the change from 2.14.0 that dispensed with taking overlay placements/stroke width into account. In some cases browsers were choosing spurious values for stroke width with this setup.
+
+## 2.14.2
+
+July 12th 2020
+
+- Always use width/height of at least 1 pixel in SVG element. This is a proper fix for the issue from 2.14.0; don't use 2.14.1.
+
+## 2.14.1
+
+July 12th 2020
+
+- Fixed issue with SVG elements sometimes being assigned height/width of 0, in which case overflow is ignored.
+
+## 2.14.0
+
+July 11th 2020
+
+### Breaking
+
+- Refactored connection paint code to not take overlay placements or stroke width of connector into account when computing SVG bounds.  The `.jtk-connector` class in the `jsplumbtoolkit-defaults.css` file now has `overflow:visible`, which covers this. If you are upgrading from a prior version you should ensure this style is applied to your `.jtk-connector` elements.
+
+### Non-breaking
+
+- `doNotFireEvent` parameter in `deleteConnection` js doc switched to `fireEvent` (issue 932)
+- Internal refactoring of paint code to introduce the concept of a "router". No functional change.
+
+## 2.13.4
+
+July 9th 2020
+
+- Added missing `uuid` option to `EndpointOptions` in types. No change to the code.
+
+## 2.13.3
+
+Jun 16th 2020
+
+- Minor changes to demonstrations. No change to the library.
+
 ## 2.13.2
 
 May 1st 2020

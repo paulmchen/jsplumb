@@ -1,7 +1,7 @@
 /*
  * This file contains the core code.
  *
- * Copyright (c) 2010 - 2018 jsPlumb (hello@jsplumbtoolkit.com)
+ * Copyright (c) 2010 - 2020 jsPlumb (hello@jsplumbtoolkit.com)
  *
  * https://jsplumbtoolkit.com
  * https://github.com/jsplumb/jsplumb
@@ -982,7 +982,7 @@
                 // connection is new; it has just (possibly) moved. the question is whether
                 // to make that call here or in the anchor manager.  i think perhaps here.
                 if (doInformAnchorManager !== false) {
-                    _currentInstance.anchorManager.newConnection(jpc);
+                    _currentInstance.router.newConnection(jpc);
                 }
 
                 // force a paint
@@ -1388,11 +1388,11 @@
 
         this.setSource = function (connection, el, doNotRepaint) {
             var p = _set(connection, el, 0, doNotRepaint);
-            this.anchorManager.sourceChanged(p.originalSourceId, p.newSourceId, connection, p.el);
+            this.router.sourceOrTargetChanged(p.originalSourceId, p.newSourceId, connection, p.el, 0);
         };
         this.setTarget = function (connection, el, doNotRepaint) {
             var p = _set(connection, el, 1, doNotRepaint);
-            this.anchorManager.updateOtherEndpoint(p.originalSourceId, p.originalTargetId, p.newTargetId, connection);
+            this.router.sourceOrTargetChanged(p.originalTargetId, p.newTargetId, connection, p.el, 1);
         };
 
         this.deleteEndpoint = function (object, dontUpdateHover, deleteAttachedObjects) {
@@ -1418,7 +1418,7 @@
             endpointsByUUID = {};
             offsets = {};
             offsetTimestamps = {};
-            _currentInstance.anchorManager.reset();
+            _currentInstance.router.reset();
             var dm = _currentInstance.getDragManager();
             if (dm) {
                 dm.reset();
@@ -1447,7 +1447,7 @@
             // always fire this. used by internal jsplumb stuff.
             _currentInstance.fire("internal.connectionDetached", params, originalEvent);
 
-            _currentInstance.anchorManager.connectionDetached(params);
+            _currentInstance.router.connectionDetached(params);
         };
 
         var fireMoveEvent = _currentInstance.fireMoveEvent = function (params, evt) {
@@ -1487,7 +1487,7 @@
          * @method deleteConnection
          * @param connection Connection to delete
          * @param {Object} [params] Optional delete parameters
-         * @param {Boolean} [params.doNotFireEvent=false] If true, a connection detached event will not be fired. Otherwise one will.
+         * @param {Boolean} [params.fireEvent=true] If false, a connection detached event will not be fired. Otherwise one will.
          * @param {Boolean} [params.force=false] If true, the connection will be deleted even if a beforeDetach interceptor tries to stop the deletion.
          * @returns {Boolean} True if the connection was deleted, false otherwise.
          */
@@ -2025,7 +2025,8 @@
         this.init = function () {
             if (!initialized) {
                 _getContainerFromDefaults();
-                _currentInstance.anchorManager = new root.jsPlumb.AnchorManager({jsPlumbInstance: _currentInstance});
+                _currentInstance.router = new root.jsPlumb.DefaultRouter(_currentInstance);
+                _currentInstance.anchorManager = _currentInstance.router.anchorManager;
                 initialized = true;
                 _currentInstance.fire("ready", _currentInstance);
             }
@@ -2839,8 +2840,7 @@
                 if (dm) {
                     dm.elementRemoved(_info.id);
                 }
-                _currentInstance.anchorManager.clearFor(_info.id);
-                _currentInstance.anchorManager.removeFloatingConnection(_info.id);
+                _currentInstance.router.elementRemoved(_info.id);
 
                 if (_currentInstance.isSource(_info.el)) {
                     _currentInstance.unmakeSource(_info.el);
@@ -3010,7 +3010,7 @@
             this.targetEndpointDefinitions[newId] = this.targetEndpointDefinitions[id];
             delete this.targetEndpointDefinitions[id];
 
-            this.anchorManager.changeId(id, newId);
+            this.router.changeId(id, newId);
             var dm = this.getDragManager();
             if (dm) {
                 dm.changeId(id, newId);
@@ -3216,14 +3216,10 @@
 
             // and advise the anchor manager
             if (index === 0) {
-                // TODO why are there two differently named methods? Why is there not one method that says "some end of this
-                // connection changed (you give the index), and here's the new element and element id."
-                this.anchorManager.sourceChanged(originalElementId, proxyElId, connection, proxyEl);
+                this.router.sourceOrTargetChanged(originalElementId, proxyElId, connection, proxyEl, 0);
             }
             else {
-                this.anchorManager.updateOtherEndpoint(connection.endpoints[0].elementId, originalElementId, proxyElId, connection);
-                connection.target = proxyEl;
-                connection.targetId = proxyElId;
+                this.router.sourceOrTargetChanged(originalElementId, proxyElId, connection, proxyEl, 1);
             }
 
             // detach the original EP from the connection.
@@ -3253,12 +3249,10 @@
             if (index === 0) {
                 // TODO why are there two differently named methods? Why is there not one method that says "some end of this
                 // connection changed (you give the index), and here's the new element and element id."
-                this.anchorManager.sourceChanged(proxyElId, originalElementId, connection, originalElement);
+                this.router.sourceOrTargetChanged(proxyElId, originalElementId, connection, originalElement, 0);
             }
             else {
-                this.anchorManager.updateOtherEndpoint(connection.endpoints[0].elementId, proxyElId, originalElementId, connection);
-                connection.target = originalElement;
-                connection.targetId = originalElementId;
+                this.router.sourceOrTargetChanged(proxyElId, originalElementId, connection, originalElement, 1);
             }
 
             // detach the proxy EP from the connection (which will cause it to be removed as we no longer need it)
